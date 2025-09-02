@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Happy Birthday</title>
+  <link rel="preload" href="favorite-song.mp3" as="audio" />
+  <style>
+    :root{
+      --bg:#0f0f1a; --card:#141428cc; --text:#f7f7fb; --muted:#b8b8c6;
+      --accent:#ff6ba6; --accent-2:#ffd166; --glow:#ff6ba655;
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{
+      margin:0; font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif; color:var(--text);
+      background: radial-gradient(1200px 800px at 50% -20%, #1e1e33 0%, #0f0f1a 55%, #0b0b14 100%);
+      overflow-x:hidden;
+    }
+    .container{min-height:100dvh; display:grid; grid-template-rows:auto 1fr auto; gap:24px; padding:24px clamp(16px,4vw,40px) 28px; position:relative; isolation:isolate;}
+    header{text-align:center; position:relative; z-index:1;}
+    h1{margin:0; font-size:clamp(28px,5vw,44px); letter-spacing:.5px; background:linear-gradient(90deg,#ffd166,#ff6ba6,#b388ff); -webkit-background-clip:text; background-clip:text; color:transparent; animation:fadeSlide .8s both;}
+    .subtitle{color:var(--muted); margin-top:8px; font-size:clamp(14px,2.4vw,16px); animation:fadeSlide .9s .08s both;}
+
+    .card{
+      z-index:1; background:var(--card); border:1px solid #ffffff14; border-radius:18px; padding:22px;
+      max-width:1000px; margin:0 auto; backdrop-filter:blur(8px);
+      box-shadow:0 12px 40px #00000055, inset 0 0 0 1px #ffffff08; animation:popIn .6s .05s both;
+    }
+    .wish{font-size:clamp(16px,2.6vw,18px); line-height:1.6; margin:6px 0 16px; color:#f0f0ff;}
+    .emph{color:var(--accent); font-weight:600}
+
+    /* 3D gallery grid */
+    .gallery-3d{
+      display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:18px 0 6px;
+    }
+    .flip-card{ perspective: 1000px; position:relative; height:220px; border-radius:14px; outline:none; }
+    .flip-inner{
+      position:relative; width:100%; height:100%;
+      transform-style: preserve-3d; transition: transform .7s cubic-bezier(.2,.7,.2,1), filter .2s;
+      border-radius:14px; overflow:hidden; box-shadow:0 10px 26px #00000055, inset 0 0 0 1px #ffffff14;
+      view-timeline-name: --reveal; view-timeline-axis:block; animation: auto linear reveal both; animation-timeline: --reveal; animation-range: entry 25% cover 45%;
+    }
+    .face{position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden;}
+    .front img{width:100%; height:100%; object-fit:cover; display:block}
+    .back{
+      display:grid; place-items:center; padding:16px; text-align:center;
+      background:linear-gradient(160deg,#1a1530,#261a40); color:#f7f7fb;
+      transform: rotateY(180deg);
+    }
+    .flip-card.flipped .flip-inner{ transform: rotateY(180deg); }
+
+    /* Tilt effect on hover */
+    .tilt .flip-inner{ will-change: transform; }
+    .tilt:hover .flip-inner{ filter:brightness(1.03) saturate(1.03); }
+
+    /* Side music dock */
+    .music-dock{
+      position:fixed; right:16px; bottom:16px; z-index:3;
+      background:linear-gradient(180deg, #1a1430cc, #141428cc); color:#fff; border:1px solid #ffffff1c; border-radius:16px;
+      padding:12px; width:min(260px, 86vw); box-shadow:0 12px 36px #00000066, 0 0 0 1px #ffffff0a inset;
+      backdrop-filter:blur(8px); display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; animation:floatUp .7s .2s both ease;
+    }
+    .music-art{
+      width:42px; height:42px; border-radius:10px; background:conic-gradient(from 210deg, #ff6ba6, #ffd166, #b388ff, #ff6ba6);
+      box-shadow:0 6px 18px var(--glow);
+    }
+    .music-meta{display:flex; flex-direction:column; gap:4px;}
+    .title{font-size:14px; font-weight:600}
+    .artist{font-size:12px; color:var(--muted)}
+    .icon-btn{
+      appearance:none; border:0; background:#ffffff10; color:#fff; border-radius:999px; width:36px; height:36px; cursor:pointer;
+      display:grid; place-items:center; box-shadow:0 6px 12px #00000040; transition:transform .15s ease, background .2s ease;
+    }
+    .icon-btn:hover{transform:translateY(-1px); background:#ffffff20}
+    .bar{grid-column:1 / -1; height:6px; background:#ffffff18; border-radius:999px; overflow:hidden; position:relative; margin-top:6px}
+    .progress{position:absolute; inset:0 auto 0 0; width:0%; background:linear-gradient(90deg,#ffd166,#ff6ba6); border-radius:999px; transition:width .15s linear}
+
+    /* Lightbox */
+    .lightbox{ position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center; }
+    .lightbox.show{ display:flex; }
+    .lightbox-backdrop{ position:absolute; inset:0; background:#0009; backdrop-filter: blur(6px); }
+    .lightbox-img{
+      position:relative; max-width:min(92vw, 1100px); max-height:min(86vh, 820px);
+      border-radius:16px; box-shadow:0 20px 60px #000a; transform: translateZ(0) scale(.96);
+      animation: zoomIn .28s ease both;
+    }
+    .lightbox-close{
+      position:absolute; top:18px; right:20px; width:38px; height:38px; border-radius:999px; border:0; cursor:pointer;
+      font-size:22px; background:#ffffff1a; color:#fff; box-shadow:0 6px 16px #0006;
+    }
+
+    /* Floating hearts + emblem */
+    .center-heart{position:fixed; inset:auto 0 12%; margin-inline:auto; width:120px; height:120px; opacity:.08; z-index:0; filter:drop-shadow(0 0 14px #ff6ba655)}
+    .center-heart .heart{position:relative; width:100%; height:100%; transform:rotate(45deg); background:linear-gradient(135deg,#ff6ba6,#ff2e74); animation:heartbeat 1.6s ease-in-out infinite; border-radius:12px;}
+    .center-heart .heart:before,.center-heart .heart:after{content:""; position:absolute; width:100%; height:100%; background:inherit; border-radius:50%}
+    .center-heart .heart:before{top:-50%; left:0} .center-heart .heart:after{left:-50%; top:0}
+
+    .float-layer{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden}
+    .float-heart{position:absolute; width:12px; height:12px; opacity:.7; transform:translate(-50%,-50%) rotate(45deg);
+      background:radial-gradient(circle at 30% 30%, #fff 0 18%, #ff83b3 19% 100%); filter:drop-shadow(0 0 6px #ff6ba666);
+      animation:rise var(--dur) linear infinite; border-radius:3px;}
+    .float-heart::before,.float-heart::after{content:""; position:absolute; width:100%; height:100%; border-radius:50%; background:inherit}
+    .float-heart::before{top:-50%; left:0} .float-heart::after{left:-50%; top:0}
+
+    /* Keyframes */
+    @keyframes heartbeat{0%,25%{transform:rotate(45deg) scale(1)}30%{transform:rotate(45deg) scale(1.35)}50%{scale:1.15}70%{scale:1.35}100%{transform:rotate(45deg) scale(1)}}
+    @keyframes rise{from{transform:translate(var(--x,0), 110vh) rotate(45deg) scale(var(--s,1)); opacity:0} 10%{opacity:.85} 80%{opacity:.85} to{transform:translate(calc(var(--x,0) + var(--drift, 0px)), -10vh) rotate(45deg) scale(var(--s,1)); opacity:0}}
+    @keyframes popIn{from{opacity:0; transform:translateY(8px) scale(.98)} to{opacity:1; transform:translateY(0) scale(1)}}
+    @keyframes fadeSlide{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:translateY(0)}}
+    @keyframes zoomIn{ from{opacity:0; transform:scale(.92)} to{opacity:1; transform:scale(1)} }
+
+    /* Reveal on scroll for cards */
+    @keyframes reveal{from{opacity:0; clip-path: inset(0% 60% 0% 50%)} to{opacity:1; clip-path: inset(0% 0% 0% 0%)}}
+
+    /* Responsive */
+    @media (max-width:860px){ .gallery-3d{grid-template-columns:repeat(2,minmax(0,1fr))} .flip-card{height:200px} }
+    @media (max-width:540px){ .gallery-3d{grid-template-columns:1fr} .flip-card{height:240px} }
+  </style>
+</head>
+<body>
+  <!-- emblem + floating hearts -->
+  <div class="center-heart" aria-hidden="true"><div class="heart"></div></div>
+  <div class="float-layer" aria-hidden="true" id="float-layer"></div>
+
+  <div class="container">
+    <header>
+      <h1>Happy Birthday ✨</h1>
+      <p class="subtitle">May this day sparkle with smiles, surprises, and moments kept forever.</p>
+    </header>
+
+    <main class="card">
+      <p class="wish">
+        Wishing a day filled with laughter, warmth, and the sweetest memories, the kind that glow long after the candles fade.
+        <span class="emph">Here’s to more adventures, gentle mornings, and cozy evenings—today and always.</span>
+      </p>
+
+      <section class="gallery-3d" aria-label="Photo memories in 3D">
+        <article class="flip-card tilt" tabindex="0" role="button" aria-label="Open memory details">
+          <div class="flip-inner">
+            <figure class="face front"><img src="IMG-20241124-WA0057.jpg" alt="Memory one" /></figure>
+            <div class="face back"><h3>Sunny getaway</h3><p>A bright day that still warms the heart.</p></div>
+          </div>
+        </article>
+        <article class="flip-card tilt" tabindex="0" role="button" aria-label="Open memory details">
+          <div class="flip-inner">
+            <figure class="face front"><img src="IMG-20241124-WA0058.jpg" alt="Memory two" /></figure>
+            <div class="face back"><h3>City lights</h3><p>Late-night laughs under neon skies.</p></div>
+          </div>
+        </article>
+        <article class="flip-card tilt" tabindex="0" role="button" aria-label="Open memory details">
+          <div class="flip-inner">
+            <figure class="face front"><img src="IMG-20241124-WA0059.jpg" alt="Memory three" /></figure>
+            <div class="face back"><h3>Cozy café</h3><p>Warm mugs and warmer company.</p></div>
+          </div>
+        </article>
+        <article class="flip-card tilt" tabindex="0" role="button" aria-label="Open memory details">
+          <div class="flip-inner">
+            <figure class="face front"><img src="IMG-20241124-WA0060.jpg" alt="Memory four" /></figure>
+            <div class="face back"><h3>Little victories</h3><p>Cheering every step together.</p></div>
+          </div>
+        </article>
+        <article class="flip-card tilt" tabindex="0" role="button" aria-label="Open memory details">
+          <div class="flip-inner">
+            <figure class="face front"><img src="IMG-20241124-WA0065.jpg" alt="Memory five" /></figure>
+            <div class="face back"><h3>Road trips</h3><p>Maps, music, and open skies.</p></div>
+          </div>
+        </article>
+        <article class="flip-card tilt" tabindex="0" role="button" aria-label="Open memory details">
+          <div class="flip-inner">
+            <figure class="face front"><img src="IMG-20241126-WA0005.jpg" alt="Memory six" /></figure>
+            <div class="face back"><h3>Quiet sunsets</h3><p>Where words felt optional.</p></div>
+          </div>
+        </article>
+      </section>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <a class="btn" href="gift.html" style="appearance:none;border:0;border-radius:999px;padding:10px 16px;font-weight:600;background:linear-gradient(90deg,#ff6ba6,#ffa5c6);color:#231322;text-decoration:none;box-shadow:0 8px 16px #ff6ba633;">Open the Gift 🎁</a>
+        <span class="note" style="color:var(--muted); font-size:13px">Tip: Start the song from the dock for the full vibe.</span>
+      </div>
+    </main>
+
+    <footer style="text-align:center; color:var(--muted); font-size:12px; opacity:.9">Made with tiny hearts and big smiles.</footer>
+  </div>
+
+  <!-- Side music dock -->
+  <div class="music-dock" role="region" aria-label="Favorite song player">
+    <div class="music-art" aria-hidden="true"></div>
+    <div class="music-meta">
+      <div class="title">Favorite Song</div>
+      <div class="artist">Press play to begin</div>
+    </div>
+    <button class="icon-btn" id="toggle" aria-label="Play or pause">►</button>
+    <div class="bar" aria-hidden="true"><div class="progress" id="progress"></div></div>
+    <audio id="song" controls style="width:100%; grid-column:1/-1; border-radius:10px; border:1px solid #ffffff22; display:none;">
+      <source src="Indian 2 - Paara _ Tamil Song.mp3" type="audio/mpeg" />
+      Your browser does not support the audio element.
+    </audio>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="lightbox-backdrop"></div>
+    <img class="lightbox-img" alt="" />
+    <button class="lightbox-close" aria-label="Close preview">×</button>
+  </div>
+
+  <script>
+    // Floating mini-hearts
+    const layer = document.getElementById('float-layer');
+    const HEARTS = 28;
+    function spawnHeart(){
+      const h = document.createElement('div');
+      h.className='float-heart';
+      const x = Math.random()*100, s = 0.8 + Math.random()*0.9, d = 9 + Math.random()*10;
+      const drift = (Math.random()*60 - 30) + 'px';
+      h.style.left = x + 'vw';
+      h.style.setProperty('--x', x + 'vw');
+      h.style.setProperty('--s', s);
+      h.style.setProperty('--dur', d + 's');
+      h.style.setProperty('--drift', drift);
+      layer.appendChild(h);
+      h.addEventListener('animationend', ()=>{ h.remove(); setTimeout(spawnHeart, Math.random()*2000); });
+    }
+    for(let i=0;i<HEARTS;i++){ setTimeout(spawnHeart, i*220); }
+
+    // Music dock logic (accessible fallback via hidden <audio>)
+    const audio = document.getElementById('song');
+    const toggle = document.getElementById('toggle');
+    const progress = document.getElementById('progress');
+
+    if (audio){
+      // polite warm-up
+      audio.muted = true;
+      audio.play().catch(()=>{}).finally(()=>{ audio.pause(); audio.muted = false; });
+    }
+    function icon(){ toggle.textContent = audio && !audio.paused ? '❚❚' : '►'; }
+    function bar(){ if(!audio || !audio.duration) return; progress.style.width = (audio.currentTime/audio.duration*100)+'%'; }
+    toggle.addEventListener('click', ()=>{ if(!audio) return; if(audio.paused){ audio.play().catch(()=>{});} else { audio.pause(); } icon(); });
+    audio?.addEventListener('timeupdate', bar);
+    audio?.addEventListener('play', icon);
+    audio?.addEventListener('pause', icon);
+    audio?.addEventListener('ended', icon);
+    document.querySelector('.bar').addEventListener('click', (e)=>{
+      if(!audio || !audio.duration) return;
+      const r = e.currentTarget.getBoundingClientRect();
+      audio.currentTime = ((e.clientX - r.left)/r.width)*audio.duration;
+    });
+
+    // Flip on click / keyboard
+    document.querySelectorAll('.flip-card').forEach(card=>{
+      card.addEventListener('click', ()=> card.classList.toggle('flipped'));
+      card.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); card.classList.toggle('flipped'); }});
+    });
+
+    // Lightweight parallax tilt
+    document.querySelectorAll('.tilt').forEach(card=>{
+      const inner = card.querySelector('.flip-inner');
+      let rect;
+      card.addEventListener('mousemove', (e)=>{
+        rect = rect || card.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / rect.width - .5;
+        const y = (e.clientY - rect.top) / rect.height - .5;
+        const base = card.classList.contains('flipped') ? 'rotateY(180deg)' : '';
+        inner.style.transform = base + ` rotateX(${(-y*8).toFixed(2)}deg) rotateY(${(x*10).toFixed(2)}deg)`;
+      });
+      card.addEventListener('mouseleave', ()=>{
+        const base = card.classList.contains('flipped') ? 'rotateY(180deg)' : 'none';
+        inner.style.transform = base;
+        rect = null;
+      });
+    });
+
+    // Lightbox
+    const lb = document.getElementById('lightbox');
+    const lbImg = lb.querySelector('.lightbox-img');
+    function openLB(src, alt=''){ lbImg.src=src; lbImg.alt=alt; lb.classList.add('show'); lb.setAttribute('aria-hidden','false'); }
+    function closeLB(){ lb.classList.remove('show'); lb.setAttribute('aria-hidden','true'); lbImg.src=''; }
+    lb.querySelector('.lightbox-backdrop').addEventListener('click', closeLB);
+    lb.querySelector('.lightbox-close').addEventListener('click', closeLB);
+    window.addEventListener('keydown', e=>{ if(e.key==='Escape') closeLB(); });
+
+    document.querySelectorAll('.flip-card .front img').forEach(img=>{
+      img.style.cursor='zoom-in';
+      img.addEventListener('click', e=>{
+        e.stopPropagation();
+        openLB(img.src, img.alt || 'Photo');
+      });
+    });
+  </script>
+</body>
+</html>
